@@ -1,0 +1,3 @@
+numpy==1.18.3
+pypesq==1.2.4
+SoundFile==0.10.3.post1

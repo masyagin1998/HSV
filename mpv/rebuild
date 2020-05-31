@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+export LC_ALL=C
+
+#./update
+./clean
+./build $@
