@@ -1,6 +1,6 @@
 diff -ruN ffmpeg-orig/configure ffmpeg/configure
 --- ffmpeg-orig/configure	2020-05-27 19:20:05.000000000 +0300
-+++ ffmpeg/configure	2020-05-31 09:44:46.797473000 +0300
++++ ffmpeg/configure	2020-05-31 10:19:23.604792000 +0300
 @@ -2352,6 +2352,7 @@
      cbs_vp9
      dirac_parse
@@ -19,8 +19,8 @@ diff -ruN ffmpeg-orig/configure ffmpeg/configure
  elbg_filter_deps="avcodec"
 diff -ruN ffmpeg-orig/libavfilter/af_hsvden.c ffmpeg/libavfilter/af_hsvden.c
 --- ffmpeg-orig/libavfilter/af_hsvden.c	1970-01-01 03:00:00.000000000 +0300
-+++ ffmpeg/libavfilter/af_hsvden.c	2020-05-31 09:29:09.695652000 +0300
-@@ -0,0 +1,314 @@
++++ ffmpeg/libavfilter/af_hsvden.c	2020-05-31 10:32:14.812072000 +0300
+@@ -0,0 +1,323 @@
 +/*
 + * Copyright (c) 2020 Mikhail Masyagin
 + *
@@ -37,6 +37,10 @@ diff -ruN ffmpeg-orig/libavfilter/af_hsvden.c ffmpeg/libavfilter/af_hsvden.c
 +	const AVClass*class;
 +
 +	char*mode;
++	unsigned frame_size_smpls;
++	unsigned overlap_perc;
++	unsigned dft_size_smpls;
++	unsigned cap;
 +
 +	struct HSV_CONFIG conf;
 +	hsvc_t hsvc;
@@ -69,7 +73,7 @@ diff -ruN ffmpeg-orig/libavfilter/af_hsvden.c ffmpeg/libavfilter/af_hsvden.c
 +	{
 +	 .name = "frame",
 +	 .help = "Frame size in samples.",
-+	 .offset = OFFSET(conf.frame_size_smpls),
++	 .offset = OFFSET(frame_size_smpls),
 +	 .type = AV_OPT_TYPE_INT,
 +	 .default_val = { .i64 = 0 },
 +	 .min = 0,
@@ -79,7 +83,7 @@ diff -ruN ffmpeg-orig/libavfilter/af_hsvden.c ffmpeg/libavfilter/af_hsvden.c
 +	{
 +	 .name = "f",
 +	 .help = "Frame size in samples.",
-+	 .offset = OFFSET(conf.frame_size_smpls),
++	 .offset = OFFSET(frame_size_smpls),
 +	 .type = AV_OPT_TYPE_INT,
 +	 .default_val = { .i64 = 0 },
 +	 .min = 0,
@@ -90,7 +94,7 @@ diff -ruN ffmpeg-orig/libavfilter/af_hsvden.c ffmpeg/libavfilter/af_hsvden.c
 +	{
 +	 .name = "overlap",
 +	 .help = "Overlap in percents.",
-+	 .offset = OFFSET(conf.overlap_perc),
++	 .offset = OFFSET(overlap_perc),
 +	 .type = AV_OPT_TYPE_INT,
 +	 .default_val = { .i64 = 0 },
 +	 .min = 0,
@@ -100,7 +104,7 @@ diff -ruN ffmpeg-orig/libavfilter/af_hsvden.c ffmpeg/libavfilter/af_hsvden.c
 +	{
 +	 .name = "o",
 +	 .help = "Overlap in percents.",
-+	 .offset = OFFSET(conf.overlap_perc),
++	 .offset = OFFSET(overlap_perc),
 +	 .type = AV_OPT_TYPE_INT,
 +	 .default_val = { .i64 = 0 },
 +	 .min = 0,
@@ -111,7 +115,7 @@ diff -ruN ffmpeg-orig/libavfilter/af_hsvden.c ffmpeg/libavfilter/af_hsvden.c
 +	{
 +	 .name = "dft",
 +	 .help = "DFT size in samples.",
-+	 .offset = OFFSET(conf.dft_size_smpls),
++	 .offset = OFFSET(dft_size_smpls),
 +	 .type = AV_OPT_TYPE_INT,
 +	 .default_val = { .i64 = 0 },
 +	 .min = 0,
@@ -121,7 +125,7 @@ diff -ruN ffmpeg-orig/libavfilter/af_hsvden.c ffmpeg/libavfilter/af_hsvden.c
 +	{
 +	 .name = "d",
 +	 .help = "DFT size in samples.",
-+	 .offset = OFFSET(conf.dft_size_smpls),
++	 .offset = OFFSET(dft_size_smpls),
 +	 .type = AV_OPT_TYPE_INT,
 +	 .default_val = { .i64 = 0 },
 +	 .min = 0,
@@ -132,7 +136,7 @@ diff -ruN ffmpeg-orig/libavfilter/af_hsvden.c ffmpeg/libavfilter/af_hsvden.c
 +	{
 +	 .name = "cap",
 +	 .help = "Internal buffer capacity in bytes",
-+	 .offset = OFFSET(conf.cap),
++	 .offset = OFFSET(cap),
 +	 .type = AV_OPT_TYPE_INT,
 +	 .default_val = { .i64 = 0 },
 +	 .min = 0,
@@ -142,7 +146,7 @@ diff -ruN ffmpeg-orig/libavfilter/af_hsvden.c ffmpeg/libavfilter/af_hsvden.c
 +	{
 +	 .name = "c",
 +	 .help = "Internal buffer capacity in bytes",
-+	 .offset = OFFSET(conf.cap),
++	 .offset = OFFSET(cap),
 +	 .type = AV_OPT_TYPE_INT,
 +	 .default_val = { .i64 = 0 },
 +	 .min = 0,
@@ -243,6 +247,11 @@ diff -ruN ffmpeg-orig/libavfilter/af_hsvden.c ffmpeg/libavfilter/af_hsvden.c
 +		return AVERROR(EINVAL);
 +	}
 +
++	s->conf.frame_size_smpls = s->frame_size_smpls;
++	s->conf.overlap_perc = s->overlap_perc;
++	s->conf.dft_size_smpls = s->dft_size_smpls;
++	s->conf.cap = s->cap;
++
 +	r = hsvc_validate_config(&(s->conf));
 +	if ((enum HSV_CODE) r != HSV_CODE_OK) {
 +		av_log(ctx, AV_LOG_ERROR, "Invalid configuration in parameter (%d)\n", r);
@@ -337,7 +346,7 @@ diff -ruN ffmpeg-orig/libavfilter/af_hsvden.c ffmpeg/libavfilter/af_hsvden.c
 +};
 diff -ruN ffmpeg-orig/libavfilter/allfilters.c ffmpeg/libavfilter/allfilters.c
 --- ffmpeg-orig/libavfilter/allfilters.c	2020-05-30 19:20:04.000000000 +0300
-+++ ffmpeg/libavfilter/allfilters.c	2020-05-31 09:45:54.555011000 +0300
++++ ffmpeg/libavfilter/allfilters.c	2020-05-31 10:19:23.604792000 +0300
 @@ -23,6 +23,13 @@
  #include "avfilter.h"
  #include "config.h"
@@ -354,7 +363,7 @@ diff -ruN ffmpeg-orig/libavfilter/allfilters.c ffmpeg/libavfilter/allfilters.c
  extern AVFilter ff_af_acontrast;
 diff -ruN ffmpeg-orig/libavfilter/hsv/dft/dft.c ffmpeg/libavfilter/hsv/dft/dft.c
 --- ffmpeg-orig/libavfilter/hsv/dft/dft.c	1970-01-01 03:00:00.000000000 +0300
-+++ ffmpeg/libavfilter/hsv/dft/dft.c	2020-05-31 09:29:09.695652000 +0300
++++ ffmpeg/libavfilter/hsv/dft/dft.c	2020-05-31 10:19:23.604792000 +0300
 @@ -0,0 +1,438 @@
 +/**
 + * \file dft.c
@@ -796,7 +805,7 @@ diff -ruN ffmpeg-orig/libavfilter/hsv/dft/dft.c ffmpeg/libavfilter/hsv/dft/dft.c
 + */
 diff -ruN ffmpeg-orig/libavfilter/hsv/dft/dft.h ffmpeg/libavfilter/hsv/dft/dft.h
 --- ffmpeg-orig/libavfilter/hsv/dft/dft.h	1970-01-01 03:00:00.000000000 +0300
-+++ ffmpeg/libavfilter/hsv/dft/dft.h	2020-05-31 09:29:09.695652000 +0300
++++ ffmpeg/libavfilter/hsv/dft/dft.h	2020-05-31 10:19:23.604792000 +0300
 @@ -0,0 +1,129 @@
 +/**
 + * \file dft.h
@@ -929,7 +938,7 @@ diff -ruN ffmpeg-orig/libavfilter/hsv/dft/dft.h ffmpeg/libavfilter/hsv/dft/dft.h
 + */
 diff -ruN ffmpeg-orig/libavfilter/hsv/estimator/estimator.c ffmpeg/libavfilter/hsv/estimator/estimator.c
 --- ffmpeg-orig/libavfilter/hsv/estimator/estimator.c	1970-01-01 03:00:00.000000000 +0300
-+++ ffmpeg/libavfilter/hsv/estimator/estimator.c	2020-05-31 09:29:09.695652000 +0300
++++ ffmpeg/libavfilter/hsv/estimator/estimator.c	2020-05-31 10:19:23.604792000 +0300
 @@ -0,0 +1,245 @@
 +/**
 + * \file estimator.c
@@ -1178,7 +1187,7 @@ diff -ruN ffmpeg-orig/libavfilter/hsv/estimator/estimator.c ffmpeg/libavfilter/h
 + */
 diff -ruN ffmpeg-orig/libavfilter/hsv/estimator/estimator.h ffmpeg/libavfilter/hsv/estimator/estimator.h
 --- ffmpeg-orig/libavfilter/hsv/estimator/estimator.h	1970-01-01 03:00:00.000000000 +0300
-+++ ffmpeg/libavfilter/hsv/estimator/estimator.h	2020-05-31 09:29:09.695652000 +0300
++++ ffmpeg/libavfilter/hsv/estimator/estimator.h	2020-05-31 10:19:23.604792000 +0300
 @@ -0,0 +1,108 @@
 +/**
 + * \file estimator.h
@@ -1290,7 +1299,7 @@ diff -ruN ffmpeg-orig/libavfilter/hsv/estimator/estimator.h ffmpeg/libavfilter/h
 + */
 diff -ruN ffmpeg-orig/libavfilter/hsv/hsv.c ffmpeg/libavfilter/hsv/hsv.c
 --- ffmpeg-orig/libavfilter/hsv/hsv.c	1970-01-01 03:00:00.000000000 +0300
-+++ ffmpeg/libavfilter/hsv/hsv.c	2020-05-31 09:29:09.695652000 +0300
++++ ffmpeg/libavfilter/hsv/hsv.c	2020-05-31 10:19:23.604792000 +0300
 @@ -0,0 +1,413 @@
 +/**
 + * \file hsv.c
@@ -1707,7 +1716,7 @@ diff -ruN ffmpeg-orig/libavfilter/hsv/hsv.c ffmpeg/libavfilter/hsv/hsv.c
 + */
 diff -ruN ffmpeg-orig/libavfilter/hsv/hsv_priv.h ffmpeg/libavfilter/hsv/hsv_priv.h
 --- ffmpeg-orig/libavfilter/hsv/hsv_priv.h	1970-01-01 03:00:00.000000000 +0300
-+++ ffmpeg/libavfilter/hsv/hsv_priv.h	2020-05-31 09:29:09.695652000 +0300
++++ ffmpeg/libavfilter/hsv/hsv_priv.h	2020-05-31 10:19:23.604792000 +0300
 @@ -0,0 +1,87 @@
 +/**
 + * \file hsv_priv.h
@@ -1798,7 +1807,7 @@ diff -ruN ffmpeg-orig/libavfilter/hsv/hsv_priv.h ffmpeg/libavfilter/hsv/hsv_priv
 + */
 diff -ruN ffmpeg-orig/libavfilter/hsv/hsv_types/hsv_types.h ffmpeg/libavfilter/hsv/hsv_types/hsv_types.h
 --- ffmpeg-orig/libavfilter/hsv/hsv_types/hsv_types.h	1970-01-01 03:00:00.000000000 +0300
-+++ ffmpeg/libavfilter/hsv/hsv_types/hsv_types.h	2020-05-31 09:29:09.695652000 +0300
++++ ffmpeg/libavfilter/hsv/hsv_types/hsv_types.h	2020-05-31 10:19:23.604792000 +0300
 @@ -0,0 +1,87 @@
 +/**
 + * \file hsv_types.h
@@ -1889,7 +1898,7 @@ diff -ruN ffmpeg-orig/libavfilter/hsv/hsv_types/hsv_types.h ffmpeg/libavfilter/h
 + */
 diff -ruN ffmpeg-orig/libavfilter/hsv/Makefile ffmpeg/libavfilter/hsv/Makefile
 --- ffmpeg-orig/libavfilter/hsv/Makefile	1970-01-01 03:00:00.000000000 +0300
-+++ ffmpeg/libavfilter/hsv/Makefile	2020-05-31 09:29:09.695652000 +0300
++++ ffmpeg/libavfilter/hsv/Makefile	2020-05-31 10:19:23.604792000 +0300
 @@ -0,0 +1,8 @@
 +OBJS-$(CONFIG_HSV) += hsv/rb/rb.o
 +OBJS-$(CONFIG_HSV) += hsv/utils/utils.o
@@ -1901,7 +1910,7 @@ diff -ruN ffmpeg-orig/libavfilter/hsv/Makefile ffmpeg/libavfilter/hsv/Makefile
 +OBJS-$(CONFIG_HSV) += $(HSV-OBJS-yes)
 diff -ruN ffmpeg-orig/libavfilter/hsv/rb/rb.c ffmpeg/libavfilter/hsv/rb/rb.c
 --- ffmpeg-orig/libavfilter/hsv/rb/rb.c	1970-01-01 03:00:00.000000000 +0300
-+++ ffmpeg/libavfilter/hsv/rb/rb.c	2020-05-31 09:29:09.695652000 +0300
++++ ffmpeg/libavfilter/hsv/rb/rb.c	2020-05-31 10:19:23.608792000 +0300
 @@ -0,0 +1,120 @@
 +/**
 + * \file rb.c
@@ -2025,7 +2034,7 @@ diff -ruN ffmpeg-orig/libavfilter/hsv/rb/rb.c ffmpeg/libavfilter/hsv/rb/rb.c
 + */
 diff -ruN ffmpeg-orig/libavfilter/hsv/rb/rb.h ffmpeg/libavfilter/hsv/rb/rb.h
 --- ffmpeg-orig/libavfilter/hsv/rb/rb.h	1970-01-01 03:00:00.000000000 +0300
-+++ ffmpeg/libavfilter/hsv/rb/rb.h	2020-05-31 09:29:09.695652000 +0300
++++ ffmpeg/libavfilter/hsv/rb/rb.h	2020-05-31 10:19:23.608792000 +0300
 @@ -0,0 +1,114 @@
 +/**
 + * \file rb.h
@@ -2143,7 +2152,7 @@ diff -ruN ffmpeg-orig/libavfilter/hsv/rb/rb.h ffmpeg/libavfilter/hsv/rb/rb.h
 + */
 diff -ruN ffmpeg-orig/libavfilter/hsv/suppressor/suppressor.c ffmpeg/libavfilter/hsv/suppressor/suppressor.c
 --- ffmpeg-orig/libavfilter/hsv/suppressor/suppressor.c	1970-01-01 03:00:00.000000000 +0300
-+++ ffmpeg/libavfilter/hsv/suppressor/suppressor.c	2020-05-31 09:29:09.695652000 +0300
++++ ffmpeg/libavfilter/hsv/suppressor/suppressor.c	2020-05-31 10:19:23.608792000 +0300
 @@ -0,0 +1,544 @@
 +/**
 + * \file suppressor.c
@@ -2691,7 +2700,7 @@ diff -ruN ffmpeg-orig/libavfilter/hsv/suppressor/suppressor.c ffmpeg/libavfilter
 + */
 diff -ruN ffmpeg-orig/libavfilter/hsv/suppressor/suppressor.h ffmpeg/libavfilter/hsv/suppressor/suppressor.h
 --- ffmpeg-orig/libavfilter/hsv/suppressor/suppressor.h	1970-01-01 03:00:00.000000000 +0300
-+++ ffmpeg/libavfilter/hsv/suppressor/suppressor.h	2020-05-31 09:29:09.695652000 +0300
++++ ffmpeg/libavfilter/hsv/suppressor/suppressor.h	2020-05-31 10:19:23.608792000 +0300
 @@ -0,0 +1,196 @@
 +/**
 + * \file suppressor.h
@@ -2891,7 +2900,7 @@ diff -ruN ffmpeg-orig/libavfilter/hsv/suppressor/suppressor.h ffmpeg/libavfilter
 + */
 diff -ruN ffmpeg-orig/libavfilter/hsv/utils/utils.c ffmpeg/libavfilter/hsv/utils/utils.c
 --- ffmpeg-orig/libavfilter/hsv/utils/utils.c	1970-01-01 03:00:00.000000000 +0300
-+++ ffmpeg/libavfilter/hsv/utils/utils.c	2020-05-31 09:29:09.695652000 +0300
++++ ffmpeg/libavfilter/hsv/utils/utils.c	2020-05-31 10:19:23.608792000 +0300
 @@ -0,0 +1,101 @@
 +/**
 + * \file utils.c
@@ -2996,7 +3005,7 @@ diff -ruN ffmpeg-orig/libavfilter/hsv/utils/utils.c ffmpeg/libavfilter/hsv/utils
 +
 diff -ruN ffmpeg-orig/libavfilter/hsv/utils/utils.h ffmpeg/libavfilter/hsv/utils/utils.h
 --- ffmpeg-orig/libavfilter/hsv/utils/utils.h	1970-01-01 03:00:00.000000000 +0300
-+++ ffmpeg/libavfilter/hsv/utils/utils.h	2020-05-31 09:29:09.695652000 +0300
++++ ffmpeg/libavfilter/hsv/utils/utils.h	2020-05-31 10:19:23.608792000 +0300
 @@ -0,0 +1,68 @@
 +/**
 + * \file utils.h
@@ -3068,7 +3077,7 @@ diff -ruN ffmpeg-orig/libavfilter/hsv/utils/utils.h ffmpeg/libavfilter/hsv/utils
 + */
 diff -ruN ffmpeg-orig/libavfilter/hsv_interface.h ffmpeg/libavfilter/hsv_interface.h
 --- ffmpeg-orig/libavfilter/hsv_interface.h	1970-01-01 03:00:00.000000000 +0300
-+++ ffmpeg/libavfilter/hsv_interface.h	2020-05-31 09:29:09.695652000 +0300
++++ ffmpeg/libavfilter/hsv_interface.h	2020-05-31 10:19:23.608792000 +0300
 @@ -0,0 +1,180 @@
 +/*
 + * Copyright (c) 2020 Mikhail Masyagin
@@ -3252,7 +3261,7 @@ diff -ruN ffmpeg-orig/libavfilter/hsv_interface.h ffmpeg/libavfilter/hsv_interfa
 + */
 diff -ruN ffmpeg-orig/libavfilter/Makefile ffmpeg/libavfilter/Makefile
 --- ffmpeg-orig/libavfilter/Makefile	2020-05-30 19:20:04.000000000 +0300
-+++ ffmpeg/libavfilter/Makefile	2020-05-31 09:45:37.210607000 +0300
++++ ffmpeg/libavfilter/Makefile	2020-05-31 10:19:23.604792000 +0300
 @@ -28,8 +28,17 @@
  OBJS-$(CONFIG_QSVVPP)                        += qsvvpp.o
  OBJS-$(CONFIG_SCENE_SAD)                     += scene_sad.o

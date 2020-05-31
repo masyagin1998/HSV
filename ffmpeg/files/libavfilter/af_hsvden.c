@@ -14,6 +14,10 @@ struct HSV_DEN
 	const AVClass*class;
 
 	char*mode;
+	unsigned frame_size_smpls;
+	unsigned overlap_perc;
+	unsigned dft_size_smpls;
+	unsigned cap;
 
 	struct HSV_CONFIG conf;
 	hsvc_t hsvc;
@@ -46,7 +50,7 @@ static const AVOption hsvden_options[] =
 	{
 	 .name = "frame",
 	 .help = "Frame size in samples.",
-	 .offset = OFFSET(conf.frame_size_smpls),
+	 .offset = OFFSET(frame_size_smpls),
 	 .type = AV_OPT_TYPE_INT,
 	 .default_val = { .i64 = 0 },
 	 .min = 0,
@@ -56,7 +60,7 @@ static const AVOption hsvden_options[] =
 	{
 	 .name = "f",
 	 .help = "Frame size in samples.",
-	 .offset = OFFSET(conf.frame_size_smpls),
+	 .offset = OFFSET(frame_size_smpls),
 	 .type = AV_OPT_TYPE_INT,
 	 .default_val = { .i64 = 0 },
 	 .min = 0,
@@ -67,7 +71,7 @@ static const AVOption hsvden_options[] =
 	{
 	 .name = "overlap",
 	 .help = "Overlap in percents.",
-	 .offset = OFFSET(conf.overlap_perc),
+	 .offset = OFFSET(overlap_perc),
 	 .type = AV_OPT_TYPE_INT,
 	 .default_val = { .i64 = 0 },
 	 .min = 0,
@@ -77,7 +81,7 @@ static const AVOption hsvden_options[] =
 	{
 	 .name = "o",
 	 .help = "Overlap in percents.",
-	 .offset = OFFSET(conf.overlap_perc),
+	 .offset = OFFSET(overlap_perc),
 	 .type = AV_OPT_TYPE_INT,
 	 .default_val = { .i64 = 0 },
 	 .min = 0,
@@ -88,7 +92,7 @@ static const AVOption hsvden_options[] =
 	{
 	 .name = "dft",
 	 .help = "DFT size in samples.",
-	 .offset = OFFSET(conf.dft_size_smpls),
+	 .offset = OFFSET(dft_size_smpls),
 	 .type = AV_OPT_TYPE_INT,
 	 .default_val = { .i64 = 0 },
 	 .min = 0,
@@ -98,7 +102,7 @@ static const AVOption hsvden_options[] =
 	{
 	 .name = "d",
 	 .help = "DFT size in samples.",
-	 .offset = OFFSET(conf.dft_size_smpls),
+	 .offset = OFFSET(dft_size_smpls),
 	 .type = AV_OPT_TYPE_INT,
 	 .default_val = { .i64 = 0 },
 	 .min = 0,
@@ -109,7 +113,7 @@ static const AVOption hsvden_options[] =
 	{
 	 .name = "cap",
 	 .help = "Internal buffer capacity in bytes",
-	 .offset = OFFSET(conf.cap),
+	 .offset = OFFSET(cap),
 	 .type = AV_OPT_TYPE_INT,
 	 .default_val = { .i64 = 0 },
 	 .min = 0,
@@ -119,7 +123,7 @@ static const AVOption hsvden_options[] =
 	{
 	 .name = "c",
 	 .help = "Internal buffer capacity in bytes",
-	 .offset = OFFSET(conf.cap),
+	 .offset = OFFSET(cap),
 	 .type = AV_OPT_TYPE_INT,
 	 .default_val = { .i64 = 0 },
 	 .min = 0,
@@ -219,6 +223,11 @@ static int config_props(AVFilterLink*inlink)
 		av_log(ctx, AV_LOG_ERROR, "Invalid mode (%s)\n", s->mode);
 		return AVERROR(EINVAL);
 	}
+
+	s->conf.frame_size_smpls = s->frame_size_smpls;
+	s->conf.overlap_perc = s->overlap_perc;
+	s->conf.dft_size_smpls = s->dft_size_smpls;
+	s->conf.cap = s->cap;
 
 	r = hsvc_validate_config(&(s->conf));
 	if ((enum HSV_CODE) r != HSV_CODE_OK) {
