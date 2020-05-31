@@ -117,8 +117,6 @@ int main(int argc, char**argv)
 	conf.ch = CHANNELS;
 	conf.bs = BS;
 
-	conf.frame_size_smpls = 512;
-
 	if (strcmp(mode, "--specsub") == 0) {
 		conf.mode = HSV_SUPPRESSOR_MODE_SPECSUB;
 	} else if (strcmp(mode, "--wiener") == 0) {
