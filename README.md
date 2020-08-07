@@ -208,3 +208,7 @@ $ firefox doxygen/html/index.html
 - [Кренёв А. Н., Артёмова Т. К. Цифровой анализ сигналов // ЯГУ, 2003 г.](https://github.com/masyagin1998/HSV/blob/master/docs/articles/fft/%D0%9A%D1%80%D0%B5%D0%BD%D1%91%D0%B2_%D0%90_%D0%A6%D0%A1%D0%90.pdf) - книга с хорошим описанием алгоритма БПФ Блюштейна;
 - [Fukane A. R., Shashikant L. S. Noise Estimation Algorithms for Speech Enhancement in highly non-stationary environments // 2011 г.](https://github.com/masyagin1998/HSV/blob/master/docs/articles/comparison/estimators.pdf) - сравнительный анализ алгоритмов детектирвоания шума;
 - [Shrawankar U., Thakare V. M. Performance Analysis of Noise Filters and Speech Enhancement Techniques // 2012 г.](https://github.com/masyagin1998/HSV/blob/master/docs/articles/comparison/suppressors.pdf) - сравнительный анализ множества алгоритмов шумоочистки;
+
+## Благодарности
+
+- Игорю Эдуардовичу Вишнякову и Олегу Александровичу Одинцову - моим научными руководителям;
